@@ -128,6 +128,10 @@ repositories.sales = {
         include: { items: true }
       });
     });
+  },
+  async remove(id) {
+    const result = await prisma.sale.deleteMany({ where: { id } });
+    return result.count > 0;
   }
 };
 

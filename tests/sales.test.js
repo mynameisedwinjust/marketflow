@@ -37,19 +37,29 @@ test('customer extra fields persist and survive partial updates', async () => {
 
 test('a sale lowers stock and totals correctly', async () => {
   const p = await productService.create({ name: 'Sugar 1kg', price: 1600, qty: 10 });
-  const sale = await saleService.create({ items: [{ productId: p.id, quantity: 3 }], payment: 'Cash' }, { username: 'cashier' });
-  assert.strictEqual(sale.total, 4800);
-  assert.deepStrictEqual(sale.items.map(item => item.quantity), [3]);
-  assert.strictEqual((await productService.get(p.id)).qty, 7);
+  let sale;
+  try {
+    sale = await saleService.create({ items: [{ productId: p.id, quantity: 3 }], payment: 'Cash' }, { username: 'cashier' });
+    assert.strictEqual(sale.total, 4800);
+    assert.deepStrictEqual(sale.items.map(item => item.quantity), [3]);
+    assert.strictEqual((await productService.get(p.id)).qty, 7);
+  } finally {
+    if (sale) await repos.sales.remove(sale.id);
+    await repos.products.remove(p.id);
+  }
 });
 
 test('selling more than the stock is refused', async () => {
   const p = await productService.create({ name: 'Oil 3L', price: 11500, qty: 2 });
-  await assert.rejects(
-    saleService.create({ items: [{ productId: p.id, quantity: 5 }], payment: 'Cash' }, { username: 'cashier' }),
-    err => err.status === 409
-  );
-  assert.strictEqual((await productService.get(p.id)).qty, 2);
+  try {
+    await assert.rejects(
+      saleService.create({ items: [{ productId: p.id, quantity: 5 }], payment: 'Cash' }, { username: 'cashier' }),
+      err => err.status === 409
+    );
+    assert.strictEqual((await productService.get(p.id)).qty, 2);
+  } finally {
+    await repos.products.remove(p.id);
+  }
 });
 
 test('failed database sale rolls back stock deductions', async () => {

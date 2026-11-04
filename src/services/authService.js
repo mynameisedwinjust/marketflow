@@ -44,7 +44,11 @@ async function seedUsers() {
     ['cashier', 'Cashier', p.cashier, ROLES.CASHIER]
   ]) {
     if (!await repos.users.findByUsername(username)) {
-      await createUser({ username, name, password, role });
+      try {
+        await createUser({ username, name, password, role });
+      } catch (error) {
+        if (error.status !== 409) throw error;
+      }
     }
   }
 }
