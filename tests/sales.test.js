@@ -62,7 +62,7 @@ test('selling more than the stock is refused', async () => {
   }
 });
 
-test('failed database sale rolls back stock deductions', async () => {
+test('failed sale rolls back stock deductions', async () => {
   const available = await productService.create({ name: 'Available stock', price: 10, qty: 5 });
   const limited = await productService.create({ name: 'Limited stock', price: 20, qty: 1 });
   try {

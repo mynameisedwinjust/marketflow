@@ -6,7 +6,6 @@ Supermarket management system: your original HTML interface, now served by a Nod
     npm install
     copy .env.example .env    # then edit .env
     npm run db:deploy
-    npm run db:seed
     npm run dev               # auto-restarts while you work
 Open http://localhost:3000 and sign in with a seeded account:
 
@@ -16,18 +15,12 @@ Open http://localhost:3000 and sign in with a seeded account:
 | manager | manager123 | Manager: products, stock, customers, suppliers, sales |
 | cashier | cashier123 | Cashier: sell at the till, view products, add customers |
 
-Set the `SEED_*_PASSWORD` values before seeding. Seed accounts are only created when missing; changing a seed password later does not change an existing account.
+Set the `SEED_*_PASSWORD` values before the first run. Seed accounts are only created when missing; changing a seed password later does not change an existing account.
 
 ## Database
-Prisma stores users, products, customers, suppliers, sales, and sale items in PostgreSQL. The schema is in `prisma/schema.prisma`; committed migrations are applied with `npm run db:deploy`. `DATABASE_URL` should be the provider's pooled connection URL for app requests; `DIRECT_URL` should be its direct (non-pooled) URL for migrations.
+Prisma stores users, products, customers, suppliers, sales, and sale items in SQLite. The schema is in `prisma/schema.prisma`; committed migrations are applied with `npm run db:deploy`. Locally, `DATABASE_URL="file:./dev.db"` stores the database at `prisma/dev.db` (ignored by Git).
 
-### Deploy to Vercel
-1. Create a hosted PostgreSQL database (for example, through Vercel's Neon integration).
-2. In Vercel project settings, add `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `SEED_ADMIN_PASSWORD`, `SEED_MANAGER_PASSWORD`, and `SEED_CASHIER_PASSWORD` for Production and Preview. Use the pooled URL for `DATABASE_URL` and direct URL for `DIRECT_URL`; use a separate database for Preview if available.
-3. Leave Vercel's Build Command override disabled so it uses `vercel.json`. That file applies the Prisma migrations and creates any missing seed accounts during each build. Set the seed passwords before the first deploy; they are not changed on later deploys.
-4. Deploy the `main` branch. Vercel serves `public/` assets and runs the exported Express app for API requests.
-
-The committed migrations target PostgreSQL. Switching back to SQLite later will require changing the Prisma datasource and creating SQLite migrations; SQLite files are not durable on Vercel. A new PostgreSQL database starts empty; data in any existing SQLite file is not copied automatically.
+For Render, attach a persistent disk mounted at `/var/data`, set `DATABASE_URL` to `file:/var/data/marketflow.db`, and use `npm run db:deploy && npm start` as the start command. Also set `NODE_ENV=production` and a strong `JWT_SECRET`. SQLite files are not durable on Vercel, so this configuration is intended for a server with persistent storage, not Vercel.
 
 The API uses the database, but the current browser screens still include demo data and are not yet wired to load/save all records through the API.
 
@@ -41,7 +34,7 @@ The API uses the database, but the current browser screens still include demo da
       controllers/ read the request, send the response
       services/    business rules (login, stock checks on sale...)
       repositories/ Prisma-backed data access
-    prisma/       PostgreSQL schema, migrations, and seed script
+    prisma/       SQLite schema, migrations, and seed script
       middleware/  sign-in check, role check, error handling
     tests/         npm test
 
@@ -57,4 +50,4 @@ The API uses the database, but the current browser screens still include demo da
 
 ## Deploy later (Linux VPS)
     pm2 start ecosystem.config.js
-Use `nginx.conf.example` as the Nginx proxy, set `NODE_ENV=production`, a strong `JWT_SECRET`, and both PostgreSQL connection URLs.
+Use `nginx.conf.example` as the Nginx proxy, set `NODE_ENV=production` and a strong `JWT_SECRET`. Keep PM2 at 1 instance when using SQLite.
